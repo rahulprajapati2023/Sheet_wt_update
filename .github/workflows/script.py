@@ -1,8 +1,42 @@
 import mysql.connector
 import gspread
+import json
 from datetime import datetime, timedelta
 from google.oauth2.service_account import Credentials
-from config import DB_CONFIG, SPREADSHEET_NAME, SHEET_TAB_NAME, GSHEET_CREDENTIALS, HEADERS
+
+# ============================================================
+# CONFIGURATION — hardcoded directly
+# ============================================================
+DB_CONFIG = {
+    "host":     "103.195.186.17",
+    "port":     3306,
+    "database": "wt_marketing",
+    "user":     "rahul",
+    "password": "t3#Zw390r",
+}
+
+SPREADSHEET_NAME = "Invoice"
+SHEET_TAB_NAME   = "Invoice"
+
+GSHEET_CREDENTIALS = {
+    "type": "service_account",
+    "project_id": "sheet-update-wt-report",
+    "private_key_id": "135fb62fa9a288b179969992fefbeee63498b9be",
+    "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDcXLk12vktGgSB\nl9fxEz3Fkc3N1VZwD0gtcQaeDO+rURf19raEe5D+VlJx13Xf57RpjymGff+ALhYd\nXyzAZpT6GwO3u3y8L9Yc7mGawQtCRofhmnZO/8CJ9I8ntNH0Wjrqr9xlhNuckHcS\niZC9uA2l8RbqM+7++svqrkYW2tDE86VdAMgCbweXICgCKk4dSGLBYxBs43kkM6TW\nAO9t1TDIxbyR0jt6exFI+NsiRHv7Ey/BQcRYH4/QvAG6GozweqTCnT2VSWo0pbmv\ne4gzm6BdndEVae8v2f88SHoK0J3Spc4odHXqbxCOc41LBgoF6XjGnqLb1iyNtVRh\nw0JKSUS9AgMBAAECggEADqnGiEB31rS1v+LY/hluluw5Z9zY5DAxeGvzibD+LLtC\nxH2ZeQ4uNde2zjeiXWxnYKPOWqedM2FoXCV7uUTKMoH5g3BrdSvwtoWf7eKHwNin\nzORl7Xf5ZE9R9vgtBV0QsRJT2yyAnuCCZTPNXhZ2erLkzbT4I7Q6vUpsmbOPSJ+h\n3Y2Ap7b+8auT11Tyn87UNjE/EhWh6ztqkQh98rpXHVqLSb5vGTiTUBFFVeUZotP9\nwyBmrMPX2j4WM0VK0nEu666h4zuqQj+qP29mQueFhrwisahb5HAeDr6UrF4MTqFx\n+fGJGj/I0trEpzth1hcYG4vj1hdxbvuJExOAHxgX8QKBgQD5FfnWleVvzxpbyujw\nW/zTHIDHa4i7tTMmdCCP+3d1t7I2VWdvgv5xxlpZMfoNgcMASBhzpv+p2nvuFV7x\nD4PLUIkRaJ+jeEqjBp59ILKqYq7g1FIU54naKzrEWEfp6I2pDBrxw/LAmChJtRrm\nAdT/8co2Dod1ckS65ynIcJAsrQKBgQDieqKRX2iO34by+F9A77KsFuXcRHb9n6+3\nE/WJVVIIl7As6rGwr2JU8t6bgQNBxUrPDRlDARjRUVs+ubH7I/CAuTqauvnyJGCn\n3vRqSZIRxpwGOfAkUbb8/r1jkxheZxQLTDEvMyXNzw4mCI3aMX2zXWwwiM3PrIla\nsbFpEMnqUQKBgEct6H9Rxob0/+tLSNWm89DATGywZhp95WgPt15t1e1l2R99uFk9\nbcjFjfv/NB23/ymNcK9cAaNgNBoNMVxhup/XG9RFuZjVPz7nHVNUjLn0CVVmVy5y\nHAqkX97L+4D0W8b7FpgQDsbKtHibsFwaGewqBEb+T+dYCBwBAwesYwbhAoGBAJZ6\n93NyGk38FXVxNBE4ctZHLJmLYCiqpp0VhOqoJyaQaz2c/02var2Y1fIq6ZgU19z1\nDhjoLK4/yUnHJowA2DcfW+IdZB/Qrew8htfsZEKtXVQBwR7QsK4vMHVt8h4fjUDo\ncjGzYWX7MqJwwpf8lFHOPCmPbHiVYnpBYOi3gAHRAoGBAIyheuwVNSYy9NDNVOiH\nsFcYP9UdNpkMJm+9HsVQKU3RMfvYoxgCdWcSyPNz+f+LRKKvtCnE9OEut88Xvzv0\nxAt6hUn7/mwGCfluTO450havFKw7PXBSk0ZtBjyc/qdPk0NqP33+nwjpckCG+7Sx\n3WQrbbLsSmEnQj/xDx1PIB/S\n-----END PRIVATE KEY-----\n",
+    "client_email": "invoice-sync-bot@sheet-update-wt-report.iam.gserviceaccount.com",
+    "client_id": "101637681992998798900",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/invoice-sync-bot%40sheet-update-wt-report.iam.gserviceaccount.com",
+    "universe_domain": "googleapis.com"
+}
+
+HEADERS = [
+    "Date", "Customer Name", "Source",
+    "Store Name", "Dealer Code", "Sub Category",
+    "Main Category", "Qty", "Sale", "Primary Phone"
+]
 
 
 # ============================================================
