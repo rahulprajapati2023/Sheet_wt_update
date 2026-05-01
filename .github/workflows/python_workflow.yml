@@ -1,0 +1,34 @@
+name: Python Workflow 
+ 
+#on:
+#  schedule:
+#      - cron: '0 6 * * *'  # Run at 11:30 AM IST every day (6:00 AM UTC)
+ 
+#on:
+# push:
+#    branches:
+#      - main
+     
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x  # Replace '3.x' with the desired Python version
+
+      - name: Update pip
+        run: pip install --upgrade pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt  # If you have a requirements.txt file
+
+      - name: Run Python script
+        run: |
+          python .github/workflows/script.py
